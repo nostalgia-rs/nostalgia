@@ -27,3 +27,10 @@ pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
 multiple_crate_versions = "allow"
+
+[profile.release]
+opt-level = 3          # Use "z" or "s" instead if optimizing for small binary size
+lto = true             # Enables Link-Time Optimization across crates
+codegen-units = 1      # Allows better optimization by reducing parallel codegen
+panic = "abort"        # Removes stack-unwinding overhead on panic
+strip = true           # Automatically strips symbols from the binary
