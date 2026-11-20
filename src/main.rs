@@ -3,7 +3,7 @@
 
 fn main() {
     if let Err(error) = nostalgia::run() {
-        eprintln!("Error: {:#}", error);
+        eprintln!("Error: {error:#}");
         std::process::exit(1)
     }
 }

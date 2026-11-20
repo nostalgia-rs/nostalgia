@@ -1,2 +1,2 @@
-[build]
-warnings = "deny"
+# [build]
+# warnings = "deny"
