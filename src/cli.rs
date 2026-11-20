@@ -11,6 +11,7 @@ where
     command.get_matches_from(args)
 }
 
+#[must_use]
 pub fn build_command() -> Command {
     Command::new("nostalgia")
         .next_line_help(true)
@@ -33,5 +34,4 @@ pub fn build_command() -> Command {
                 .num_args(0)
                 .help("Prints the current configuration.")
         )
-
 }

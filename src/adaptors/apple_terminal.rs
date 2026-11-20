@@ -5,13 +5,14 @@
 
 use crate::adaptors::{Adaptor, AdaptorConfig};
 
+use std::fmt::Write as _;
 use std::io::{Error, ErrorKind};
 use std::process::Command;
 
 pub struct AppleTerminal {}
 
 impl Adaptor for AppleTerminal {
-    fn get_name(&self) -> &str {
+    fn get_name(&self) -> &'static str {
         "Apple_Terminal"
     }
 
@@ -44,9 +45,9 @@ impl Adaptor for AppleTerminal {
                 Error::new(ErrorKind::InvalidInput, "Background color is not available")
             })?;
             let (red, green, blue) = color_components(background_color)?;
-            script.push_str(&format!(
-                "set background color of targetProfile to {{{red}, {green}, {blue}}}\n"
-            ));
+            script.push_str("set background color of targetProfile to {");
+            let _ = write!(script, "{red}, {green}, {blue}");
+            script.push_str("}\n");
         }
 
         if config.settings.change_terminal_foreground_color {
@@ -54,9 +55,9 @@ impl Adaptor for AppleTerminal {
                 Error::new(ErrorKind::InvalidInput, "Foreground color is not available")
             })?;
             let (red, green, blue) = color_components(foreground_color)?;
-            script.push_str(&format!(
-                "set normal text color of targetProfile to {{{red}, {green}, {blue}}}\n"
-            ));
+            script.push_str("set normal text color of targetProfile to {");
+            let _ = write!(script, "{red}, {green}, {blue}");
+            script.push_str("}\n");
         }
 
         script.push_str("end tell\n");
@@ -122,8 +123,10 @@ mod tests {
 
     #[test]
     fn rejects_transparency_above_100_before_running_osascript() {
-        let mut settings = NostalgiaConfig::default();
-        settings.change_terminal_background_transparency = 101;
+        let settings = NostalgiaConfig {
+            change_terminal_background_transparency: 101,
+            ..NostalgiaConfig::default()
+        };
         let config = AdaptorConfig {
             settings: &settings,
             background_color: None,

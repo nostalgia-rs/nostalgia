@@ -1,5 +1,5 @@
 //! Warp theme fields follow its custom-theme YAML reference:
-//! https://docs.warp.dev/terminal/appearance/custom-themes/
+//! <https://docs.warp.dev/terminal/appearance/custom-themes/>
 //! Warp's documented background image uses a JPEG path relative to
 //! `~/.warp/themes/` and an opacity from 0 to 100. The generated theme must be
 //! selected once in Warp's theme picker; Warp exposes no supported CLI setting
@@ -7,6 +7,7 @@
 
 use crate::adaptors::{Adaptor, AdaptorConfig};
 
+use std::fmt::Write as _;
 use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
@@ -17,7 +18,7 @@ use std::env;
 pub struct Warp {}
 
 impl Adaptor for Warp {
-    fn get_name(&self) -> &str {
+    fn get_name(&self) -> &'static str {
         "warp"
     }
 
@@ -47,7 +48,7 @@ impl Adaptor for Warp {
         let background_color = config
             .settings
             .change_terminal_background_color
-            .then(|| config.background_color)
+            .then_some(config.background_color)
             .flatten()
             .map(warp_color)
             .transpose()?;
@@ -61,7 +62,7 @@ impl Adaptor for Warp {
         let foreground_color = config
             .settings
             .change_terminal_foreground_color
-            .then(|| config.foreground_color)
+            .then_some(config.foreground_color)
             .flatten()
             .map(warp_color)
             .transpose()?;
@@ -171,15 +172,16 @@ fn theme_yaml(
 ) -> String {
     let mut theme = String::from("name: Nostalgia\ndetails: darker\n");
     if let Some(color) = background_color {
-        theme.push_str(&format!("background: '{color}'\n"));
+        let _ = writeln!(theme, "background: '{color}'");
     }
     if let Some(color) = foreground_color {
-        theme.push_str(&format!("foreground: '{color}'\n"));
-        theme.push_str(&format!("accent: '{color}'\n"));
+        let _ = writeln!(theme, "foreground: '{color}'");
+        let _ = writeln!(theme, "accent: '{color}'");
     }
-    theme.push_str(&format!(
-        "background_image:\n  path: {background_image_name}\n  opacity: {opacity}\n"
-    ));
+    let _ = writeln!(
+        theme,
+        "background_image:\n  path: {background_image_name}\n  opacity: {opacity}"
+    );
     theme
 }
 

@@ -20,12 +20,21 @@ pub struct AdaptorConfig<'a> {
 }
 
 pub trait Adaptor {
-    // Abstract methods (must be implemented)
-    fn get_name(&self) -> &str;
+    fn get_name(&self) -> &'static str;
 
+    /// Executes this adaptor.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the adaptor cannot apply the requested change.
     fn execute(&self, image_location: &str, config: &AdaptorConfig<'_>) -> Result<String, Error>;
 }
 
+/// Resolves an adaptor name.
+///
+/// # Errors
+///
+/// Returns an error for unknown names or adaptors unsupported on the current platform.
 pub fn get_adaptor(adaptor_name: &str) -> Result<Box<dyn Adaptor>, Error> {
     match adaptor_name {
         "wallpaper" => wallpaper_adaptor(),

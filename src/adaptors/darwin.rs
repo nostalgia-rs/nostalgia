@@ -1,25 +1,26 @@
 use crate::adaptors::{Adaptor, AdaptorConfig};
-use std::process::Command;
 use std::io::Error;
+use std::process::Command;
 
 pub struct Darwin {}
 
 impl Adaptor for Darwin {
-
-    fn get_name(&self) -> &str {
+    fn get_name(&self) -> &'static str {
         "darwin"
     }
 
     fn execute(&self, image_location: &str, _config: &AdaptorConfig<'_>) -> Result<String, Error> {
         eprintln!("Setting macOS wallpaper to {image_location}");
 
-        let osa_script = format!(r#"
+        let osa_script = format!(
+            r#"
             tell application "System Events"
                 tell every desktop
-                    set picture to "{}"
+                    set picture to "{image_location}"
                 end tell
             end tell
-            "#, image_location);
+            "#
+        );
 
         let output = Command::new("osascript")
             .arg("-e")

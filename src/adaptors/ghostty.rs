@@ -1,5 +1,5 @@
 //! Configuration keys are taken from Ghostty's official option reference:
-//! https://ghostty.org/docs/config/reference (notably `background-image`,
+//! <https://ghostty.org/docs/config/reference> (notably `background-image`,
 //! `background-opacity`, `background`, and `foreground`).
 
 use crate::adaptors::{Adaptor, AdaptorConfig};
@@ -12,54 +12,48 @@ use std::path::PathBuf;
 pub struct Ghostty {}
 
 impl Adaptor for Ghostty {
-    fn get_name(&self) -> &str {
+    fn get_name(&self) -> &'static str {
         "ghostty"
     }
 
     fn execute(&self, image_location: &str, config: &AdaptorConfig<'_>) -> Result<String, Error> {
-        self.update_config(image_location, config)
+        update_config_file(image_location, config)
     }
 }
 
-impl Ghostty {
-    fn update_config(
-        &self,
-        image_location: &str,
-        config: &AdaptorConfig<'_>,
-    ) -> Result<String, Error> {
-        let config_paths = config_paths()?;
-        let mut config_path = None;
-        for path in config_paths.iter().rev() {
-            match fs::metadata(path) {
-                Ok(metadata) if metadata.is_file() => {
-                    config_path = Some(path.clone());
-                    break;
-                }
-                Ok(_) => {}
-                Err(error) if error.kind() == ErrorKind::NotFound => {}
-                Err(error) => return Err(error),
+fn update_config_file(image_location: &str, config: &AdaptorConfig<'_>) -> Result<String, Error> {
+    let config_paths = config_paths()?;
+    let mut config_path = None;
+    for path in config_paths.iter().rev() {
+        match fs::metadata(path) {
+            Ok(metadata) if metadata.is_file() => {
+                config_path = Some(path.clone());
+                break;
             }
-        }
-        let config_path = config_path
-            .or_else(|| config_paths.first().cloned())
-            .ok_or_else(|| Error::other("No Ghostty config path is available"))?;
-
-        if let Some(parent) = config_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let contents = match fs::read_to_string(&config_path) {
-            Ok(contents) => contents,
-            Err(error) if error.kind() == ErrorKind::NotFound => String::new(),
+            Ok(_) => {}
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
             Err(error) => return Err(error),
-        };
-        fs::write(
-            &config_path,
-            update_config(&contents, image_location, config)?,
-        )?;
-
-        Ok("success".to_owned())
+        }
     }
+    let config_path = config_path
+        .or_else(|| config_paths.first().cloned())
+        .ok_or_else(|| Error::other("No Ghostty config path is available"))?;
+
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let contents = match fs::read_to_string(&config_path) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(error),
+    };
+    fs::write(
+        &config_path,
+        update_config(&contents, image_location, config)?,
+    )?;
+
+    Ok("success".to_owned())
 }
 
 fn config_paths() -> Result<Vec<PathBuf>, Error> {
@@ -174,8 +168,10 @@ mod tests {
     #[test]
     fn updates_image_colors_and_background_opacity_without_changing_other_config() {
         let contents = "# terminal theme\nfont-size = 14\nbackground-image = old.png\n";
-        let mut settings = NostalgiaConfig::default();
-        settings.change_terminal_background_transparency = 75;
+        let settings = NostalgiaConfig {
+            change_terminal_background_transparency: 75,
+            ..NostalgiaConfig::default()
+        };
         let config = AdaptorConfig {
             settings: &settings,
             background_color: Some("282c34"),
@@ -207,9 +203,11 @@ mod tests {
     #[test]
     fn leaves_disabled_colors_unchanged() {
         let contents = "background = 282c34\n";
-        let mut settings = NostalgiaConfig::default();
-        settings.change_terminal_background_color = false;
-        settings.change_terminal_foreground_color = false;
+        let settings = NostalgiaConfig {
+            change_terminal_background_color: false,
+            change_terminal_foreground_color: false,
+            ..NostalgiaConfig::default()
+        };
         let config = AdaptorConfig {
             settings: &settings,
             background_color: None,
@@ -224,8 +222,10 @@ mod tests {
 
     #[test]
     fn rejects_transparency_above_100() {
-        let mut settings = NostalgiaConfig::default();
-        settings.change_terminal_background_transparency = 101;
+        let settings = NostalgiaConfig {
+            change_terminal_background_transparency: 101,
+            ..NostalgiaConfig::default()
+        };
         let config = AdaptorConfig {
             settings: &settings,
             background_color: Some("282c34"),

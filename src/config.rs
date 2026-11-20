@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +18,7 @@ pub struct NostalgiaConfig {
 }
 
 /// `NostalgiaConfig` implements `Default`
-impl ::std::default::Default for NostalgiaConfig {
+impl ::core::default::Default for NostalgiaConfig {
     fn default() -> Self {
         Self {
             enabled_adaptors: vec!["wallpaper".to_owned()],
@@ -34,24 +34,25 @@ impl ::std::default::Default for NostalgiaConfig {
     }
 }
 
-fn config_path(home: &Path) -> PathBuf {
-    home.join(".nostalgia").join("config.toml")
-}
-
 fn load_config(path: &Path) -> Result<NostalgiaConfig, confy::ConfyError> {
     confy::load_path(path)
 }
 
+/// Loads the Nostalgia configuration from the user's home directory.
+///
+/// # Errors
+///
+/// Returns an error if the home directory cannot be determined or the configuration cannot be loaded.
 pub fn get_config() -> Result<NostalgiaConfig, confy::ConfyError> {
     let home = dirs::home_dir().ok_or_else(|| {
         confy::ConfyError::BadConfigDirectory("Could not determine home directory".to_owned())
     })?;
-    load_config(&config_path(&home))
+    load_config(&home.join(".nostalgia").join("config.toml"))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{config_path, load_config, NostalgiaConfig};
+    use super::{NostalgiaConfig, load_config};
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -65,7 +66,7 @@ mod tests {
                 .unwrap()
                 .as_nanos()
         ));
-        let path = config_path(&home);
+        let path = home.join(".nostalgia").join("config.toml");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(
             &path,
