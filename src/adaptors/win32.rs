@@ -12,6 +12,6 @@ impl Adaptor for Win32 {
 
     fn execute(&self, image_location: &str, _config: &AdaptorConfig<'_>) -> Result<String, Error> {
         println!("Win32 executing for image location: {}", image_location);
-        Ok("success".to_string())
+        Ok("success".to_owned())
     }
 }

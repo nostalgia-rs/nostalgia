@@ -73,10 +73,10 @@ impl Adaptor for AppleTerminal {
                 )));
             }
         } else {
-            return Ok("No Apple Terminal profile colors were enabled".to_string());
+            return Ok("No Apple Terminal profile colors were enabled".to_owned());
         }
 
-        Ok("Apple Terminal profile colors updated".to_string())
+        Ok("Apple Terminal profile colors updated".to_owned())
     }
 }
 

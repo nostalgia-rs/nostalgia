@@ -99,10 +99,10 @@ mod tests {
             "index" => ["1", "2", "3", "4", "5"],
         )?;
 
-        let filtered = filter_values(frame.lazy(), "category", &["pokemon".to_string()]);
-        let filtered = filter_values(filtered, "subcategory", &["fire".to_string()]);
-        let filtered = filter_values(filtered, "name", &["charmander".to_string()]);
-        let filtered = filter_values(filtered, "type", &["Fire".to_string()]).collect()?;
+        let filtered = filter_values(frame.lazy(), "category", &["pokemon".to_owned()]);
+        let filtered = filter_values(filtered, "subcategory", &["fire".to_owned()]);
+        let filtered = filter_values(filtered, "name", &["charmander".to_owned()]);
+        let filtered = filter_values(filtered, "type", &["Fire".to_owned()]).collect()?;
 
         assert_eq!(
             filtered.column("index")?.str()?.get(0),
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn all_categories_disables_filtering() -> PolarsResult<()> {
         let frame = df!("category" => ["pokemon", "plants"])?;
-        let categories = vec!["ALL".to_string()];
+        let categories = vec!["ALL".to_owned()];
 
         let filtered = filter_values(frame.lazy(), "category", &categories).collect()?;
 

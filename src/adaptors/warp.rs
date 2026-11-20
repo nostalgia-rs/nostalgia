@@ -96,7 +96,7 @@ impl Adaptor for Warp {
             "Created Warp theme at {}; select 'Nostalgia' in Warp's theme picker to apply it",
             theme_path.display()
         );
-        Ok("Warp theme created".to_string())
+        Ok("Warp theme created".to_owned())
     }
 }
 

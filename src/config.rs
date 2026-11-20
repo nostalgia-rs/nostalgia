@@ -21,15 +21,15 @@ pub struct NostalgiaConfig {
 impl ::std::default::Default for NostalgiaConfig {
     fn default() -> Self {
         Self {
-            enabled_adaptors: vec!["wallpaper".to_string()],
+            enabled_adaptors: vec!["wallpaper".to_owned()],
             change_terminal_background_color: true,
             change_terminal_background_transparency: 100,
             change_terminal_foreground_color: true,
 
-            categories: vec!["ALL".to_string()],
-            subcategories: vec!["ALL".to_string()],
-            names: vec!["ALL".to_string()],
-            types: vec!["ALL".to_string()],
+            categories: vec!["ALL".to_owned()],
+            subcategories: vec!["ALL".to_owned()],
+            names: vec!["ALL".to_owned()],
+            types: vec!["ALL".to_owned()],
         }
     }
 }
@@ -44,7 +44,7 @@ fn load_config(path: &Path) -> Result<NostalgiaConfig, confy::ConfyError> {
 
 pub fn get_config() -> Result<NostalgiaConfig, confy::ConfyError> {
     let home = dirs::home_dir().ok_or_else(|| {
-        confy::ConfyError::BadConfigDirectory("Could not determine home directory".to_string())
+        confy::ConfyError::BadConfigDirectory("Could not determine home directory".to_owned())
     })?;
     load_config(&config_path(&home))
 }

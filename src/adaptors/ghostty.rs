@@ -58,7 +58,7 @@ impl Ghostty {
             update_config(&contents, image_location, config)?,
         )?;
 
-        Ok("success".to_string())
+        Ok("success".to_owned())
     }
 }
 

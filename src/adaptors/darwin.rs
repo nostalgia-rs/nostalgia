@@ -38,6 +38,6 @@ impl Adaptor for Darwin {
 
         eprintln!("macOS wallpaper updated");
 
-        Ok("success".to_string())
+        Ok("success".to_owned())
     }
 }
