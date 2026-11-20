@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
+#[non_exhaustive]
 pub struct NostalgiaConfig {
-    pub enabled_adaptors: Vec<String>,
     pub change_terminal_background_color: bool,
     pub change_terminal_background_transparency: u8,
     pub change_terminal_foreground_color: bool,
+    pub enabled_adaptors: Vec<String>,
 
     pub categories: Vec<String>,
     pub subcategories: Vec<String>,

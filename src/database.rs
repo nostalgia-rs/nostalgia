@@ -61,18 +61,18 @@ pub fn get_random_row(
     names: &[String],
     types: &[String],
 ) -> PolarsResult<DataFrame> {
-    let lf = filter_values(get_lazyframe()?, "category", categories);
-    let lf = filter_values(lf, "subcategory", subcategories);
-    let lf = filter_values(lf, "name", names);
-    let lf = filter_values(lf, "type", types);
-    let count_df = lf.clone()
+    let category_filtered_lf = filter_values(get_lazyframe()?, "category", categories);
+    let subcategory_filtered_lf = filter_values(category_filtered_lf, "subcategory", subcategories);
+    let name_filtered_lf = filter_values(subcategory_filtered_lf, "name", names);
+    let type_filtered_lf = filter_values(name_filtered_lf, "type", types);
+    let count_df = type_filtered_lf.clone()
         .select([len().alias("total_rows")])
         .collect()?;
     let total_rows = count_df
         .column("total_rows")?
         .u32()?
         .get(0)
-        .ok_or_else(|| PolarsError::NoData("row count query returned no rows".into()))?
+        .ok_or_else(|| return PolarsError::NoData("row count query returned no rows".into()))?
         as usize;
 
     if total_rows == 0 {
@@ -80,7 +80,7 @@ pub fn get_random_row(
     }
 
     let offset = rng().random_range(0..total_rows) as i64;
-    lf.slice(offset, 1).collect()
+    return type_filtered_lf.slice(offset, 1).collect()
 }
 
 #[cfg(test)]
