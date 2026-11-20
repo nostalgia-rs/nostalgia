@@ -1,19 +1,18 @@
 use std::env;
 use anyhow::Result;
-use clap::builder::Str;
 pub mod cli;
 pub mod adaptors;
 pub mod database;
 pub mod config;
-use crate::config::get_config;
-use crate::adaptors::get_adaptor;
+use crate::config::{NostalgiaConfig, get_config};
+use crate::adaptors::{get_adaptor, AdaptorConfig};
 use crate::database::get_random_row;
 use crate::adaptors::Adaptor;
 
 pub fn run() -> Result<()> {
     let cli_arguments = cli::get_cli_arguments(env::args_os());
-    let config = get_config()?;
-    println!("Config: {:?}", config.all_categories);
+    let config: NostalgiaConfig = get_config()?;
+    println!("Categories: {:?}", config.categories);
 
     if cli_arguments.get_flag("get-config-location") {
         let config_location = dirs::home_dir()
@@ -22,13 +21,18 @@ pub fn run() -> Result<()> {
         println!("Config location: {:?}", config_location);
         return Ok(());
     }
-    // let name = cli_arguments
-    //     .get_one::<String>("name")
-    //     .expect("name has a default value");
 
-    let adaptor: Box<dyn Adaptor> = get_adaptor("darwin");
+    if cli_arguments.get_flag("print-config") {
+        println!("Current configuration: {:#?}", config);
+        return Ok(());
+    }
 
-    let rand = get_random_row()?;
+    let rand = get_random_row(
+        &config.categories,
+        &config.subcategories,
+        &config.names,
+        &config.types,
+    )?;
     // println!("Random row: {:?}", rand);
     let category: String = rand.column("category")?.get(0)?.str_value().to_string();
     println!("Category: {:?}", category);
@@ -43,20 +47,28 @@ pub fn run() -> Result<()> {
         subcategory,
         index,
     );
-    adaptor.execute(&image_location)?;
-    println!("Wallpaper set to {image_location}");
 
-    // let name: &str = *cli_arguments.get_one::<String>("name").expect("name is required");
-    // println!("Hello {:?}!", name);
+    let background_color: String = rand
+        .column("background_color")?
+        .get(0)?
+        .str_value()
+        .to_string();
+    let foreground_color: String = rand
+        .column("foreground_color")?
+        .get(0)?
+        .str_value()
+        .to_string();
+    let adaptor_config = AdaptorConfig {
+        settings: &config,
+        background_color: Some(&background_color),
+        foreground_color: Some(&foreground_color),
+    };
 
-    // if let Some(name) = cli_arguments.get_one::<String>("name") {
-    //     println!("Hello: {}", name);
-    // }
-
-
-
-    // let rand = get_random_row();
-    // println!("Random row: {:?}", rand);
+    for adaptor_name in &config.enabled_adaptors {
+        let adaptor: Box<dyn Adaptor> = get_adaptor(adaptor_name)?;
+        let result = adaptor.execute(&image_location, &adaptor_config)?;
+        println!("{}: {result}", adaptor.get_name());
+    }
 
     Ok(())
 }

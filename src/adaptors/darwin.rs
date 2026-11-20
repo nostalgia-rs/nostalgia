@@ -1,4 +1,4 @@
-use crate::adaptors::Adaptor;
+use crate::adaptors::{Adaptor, AdaptorConfig};
 use std::process::Command;
 use std::io::Error;
 
@@ -10,7 +10,7 @@ impl Adaptor for Darwin {
         "darwin"
     }
 
-    fn execute(&self, image_location: &str) -> Result<String, Error> {
+    fn execute(&self, image_location: &str, _config: &AdaptorConfig<'_>) -> Result<String, Error> {
         eprintln!("Setting macOS wallpaper to {image_location}");
 
         let osa_script = format!(r#"

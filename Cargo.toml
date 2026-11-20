@@ -13,3 +13,13 @@ polars = { version = "0.55.2", features = ["csv", "lazy", "random"] }
 rand = "0.10.4"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_derive = "1.0.229"
+
+[badges.maintenance]
+status = "actively-developed"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+restriction = { level = "warn", priority = -1 }

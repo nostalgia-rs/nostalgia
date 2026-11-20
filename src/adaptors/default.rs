@@ -1,4 +1,4 @@
-use crate::adaptors::Adaptor;
+use crate::adaptors::{Adaptor, AdaptorConfig};
 
 use std::io::Error;
 
@@ -10,9 +10,9 @@ impl Adaptor for Default {
         "default"
     }
 
-    fn execute(&self, image_location: &str) -> Result<String, Error> {
+    fn execute(&self, image_location: &str, _config: &AdaptorConfig<'_>) -> Result<String, Error> {
         println!("No adaptor found for image location: {}", image_location);
 
-        Ok("success".to_string())
+        Err(Error::new(std::io::ErrorKind::NotFound, "No adaptor found"))
     }
 }
