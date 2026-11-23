@@ -1,4 +1,4 @@
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
 
 /// Parses the supplied process arguments using Nostalgia's command-line definition.
@@ -20,6 +20,12 @@ pub fn build_command() -> Command {
         .about("CLI to help bring some nostalgia to your day.")
         .help_expected(true)
         .max_term_width(80)
+        .arg(
+            Arg::new("verbose")
+                .short('v')
+                .action(ArgAction::Count)
+                .help("Increase logging verbosity (-v for info, -vv for debug)."),
+        )
         .arg(
             Arg::new("get-config-location")
                 // .short('c')
@@ -55,5 +61,18 @@ mod tests {
 
         assert!(!matches.get_flag("get-config-location"));
         assert!(!matches.get_flag("print-config"));
+        assert_eq!(matches.get_count("verbose"), 0);
+    }
+
+    #[test]
+    fn counts_repeated_verbosity_flags() {
+        assert_eq!(
+            get_cli_arguments(["nostalgia", "-v"]).get_count("verbose"),
+            1
+        );
+        assert_eq!(
+            get_cli_arguments(["nostalgia", "-vv"]).get_count("verbose"),
+            2
+        );
     }
 }
