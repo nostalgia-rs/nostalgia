@@ -104,7 +104,7 @@ fn prints_the_configuration_location() {
     let home = TestHome::new();
     home.write_config("");
 
-    let output = home.run(&["--get-config-location"]);
+    let output = home.run(&["-v", "--get-config-location"]);
 
     assert!(output.status.success());
     assert!(String::from_utf8_lossy(&output.stdout).contains(&format!(
@@ -118,7 +118,7 @@ fn prints_the_loaded_configuration() {
     let home = TestHome::new();
     home.write_config("enabled_adaptors = []\ncategories = [\"plants\"]\n");
 
-    let output = home.run(&["--print-config"]);
+    let output = home.run(&["-v", "--print-config"]);
 
     assert!(output.status.success());
     assert!(String::from_utf8_lossy(&output.stdout).contains("categories: [\n        \"plants\","));
@@ -130,7 +130,7 @@ fn selects_a_random_database_row_when_no_adaptors_are_enabled() {
     home.write_config("enabled_adaptors = []\n");
     home.write_database();
 
-    let output = home.run(&[]);
+    let output = home.run(&["-v"]);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     assert!(
@@ -144,6 +144,30 @@ fn selects_a_random_database_row_when_no_adaptors_are_enabled() {
 }
 
 #[test]
+fn verbosity_flags_select_error_info_and_debug_output() {
+    let home = TestHome::new();
+    home.write_config("enabled_adaptors = []\n");
+    home.write_database();
+
+    let default_output = home.run(&[]);
+    assert!(default_output.status.success());
+    assert!(default_output.stdout.is_empty());
+
+    let info_output = home.run(&["-v"]);
+    assert!(info_output.status.success());
+    let info_stdout = String::from_utf8_lossy(&info_output.stdout);
+    assert!(info_stdout.contains("INFO"));
+    assert!(info_stdout.contains("Category: pokemon"));
+    assert!(!info_stdout.contains("Running DB!"));
+
+    let debug_output = home.run(&["-vv"]);
+    assert!(debug_output.status.success());
+    let debug_stdout = String::from_utf8_lossy(&debug_output.stdout);
+    assert!(debug_stdout.contains("DEBUG"));
+    assert!(debug_stdout.contains("Running DB!"));
+}
+
+#[test]
 fn runs_ghostty_and_updates_its_user_configuration() {
     let home = TestHome::new();
     home.write_config("enabled_adaptors = [\"ghostty\"]\n");
@@ -153,7 +177,7 @@ fn runs_ghostty_and_updates_its_user_configuration() {
     fs::create_dir_all(ghostty_config.parent().unwrap()).unwrap();
     fs::write(&ghostty_config, "font-size = 14\n").unwrap();
 
-    let output = home.run_with_xdg_config(&[], &xdg_config);
+    let output = home.run_with_xdg_config(&["-v"], &xdg_config);
 
     assert!(
         output.status.success(),
@@ -256,7 +280,7 @@ fn runs_darwin_wallpaper_adaptor_and_reports_command_failure() {
     home.write_database();
     let bin = home.write_fake_osascript(0);
 
-    let output = home.run_with_path(&[], Some(&bin));
+    let output = home.run_with_path(&["-v"], Some(&bin));
 
     assert!(
         output.status.success(),
@@ -302,7 +326,7 @@ fn runs_apple_terminal_profile_color_adaptor() {
     home.write_database();
     let bin = home.write_fake_osascript(0);
 
-    let output = home.run_with_path(&[], Some(&bin));
+    let output = home.run_with_path(&["-v"], Some(&bin));
 
     assert!(
         output.status.success(),
@@ -327,7 +351,7 @@ fn executes_the_windows_adaptor_stub() {
     home.write_config("enabled_adaptors = [\"win32\"]\n");
     home.write_database();
 
-    let output = home.run(&[]);
+    let output = home.run(&["-v"]);
 
     assert!(
         output.status.success(),

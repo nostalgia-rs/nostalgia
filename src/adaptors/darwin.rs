@@ -10,7 +10,7 @@ impl Adaptor for Darwin {
     }
 
     fn execute(&self, image_location: &str, _config: &AdaptorConfig<'_>) -> Result<String, Error> {
-        eprintln!("Setting macOS wallpaper to {image_location}");
+        tracing::info!("Setting macOS wallpaper to {image_location}");
 
         let osa_script = format!(
             r#"
@@ -37,7 +37,7 @@ impl Adaptor for Darwin {
             )));
         }
 
-        eprintln!("macOS wallpaper updated");
+        tracing::info!("macOS wallpaper updated");
 
         Ok("success".to_owned())
     }

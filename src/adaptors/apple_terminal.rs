@@ -24,11 +24,11 @@ impl Adaptor for AppleTerminal {
             ));
         }
         if transparency != 100 {
-            eprintln!(
+            tracing::warn!(
                 "Apple Terminal does not expose background opacity through its scripting dictionary; transparency was not changed"
             );
         }
-        eprintln!(
+        tracing::warn!(
             "Apple Terminal does not expose a background-image property; only enabled profile colors will be changed"
         );
 

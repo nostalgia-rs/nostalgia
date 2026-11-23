@@ -45,18 +45,26 @@ fn build_image_location(
 ///
 /// Returns an error if configuration or database operations fail.
 pub fn run() -> Result<()> {
-    let cli_arguments = cli::get_cli_arguments(env::args_os());
+    run_with_cli_arguments(cli::get_cli_arguments(env::args_os()))
+}
+
+/// Runs Nostalgia using already-parsed command-line arguments.
+///
+/// # Errors
+///
+/// Returns an error if configuration or database operations fail.
+pub fn run_with_cli_arguments(cli_arguments: clap::ArgMatches) -> Result<()> {
     let config: NostalgiaConfig = get_config()?;
-    println!("Categories: {}", config.categories.join(", "));
+    tracing::info!("Categories: {}", config.categories.join(", "));
 
     if cli_arguments.get_flag("get-config-location") {
         let config_location = config_location(dirs::home_dir())?;
-        println!("Config location: {}", config_location.display());
+        tracing::info!("Config location: {}", config_location.display());
         return Ok(());
     }
 
     if cli_arguments.get_flag("print-config") {
-        println!("Current configuration: {config:#?}");
+        tracing::info!("Current configuration: {config:#?}");
         return Ok(());
     }
 
@@ -66,13 +74,12 @@ pub fn run() -> Result<()> {
         &config.names,
         &config.types,
     )?;
-    // println!("Random row: {:?}", rand);
     let category: String = rand.column("category")?.get(0)?.str_value().to_string();
-    println!("Category: {category}");
+    tracing::info!("Category: {category}");
     let subcategory: String = rand.column("subcategory")?.get(0)?.str_value().to_string();
-    println!("Subcategory: {subcategory}");
+    tracing::info!("Subcategory: {subcategory}");
     let index: String = rand.column("index")?.get(0)?.str_value().to_string();
-    println!("Index: {index}");
+    tracing::info!("Index: {index}");
 
     let image_location = build_image_location(dirs::home_dir(), &category, &subcategory, &index)?;
 
@@ -95,7 +102,7 @@ pub fn run() -> Result<()> {
     for adaptor_name in &config.enabled_adaptors {
         let adaptor: Box<dyn Adaptor> = get_adaptor(adaptor_name)?;
         let result = adaptor.execute(&image_location, &adaptor_config)?;
-        println!("{}: {result}", adaptor.get_name());
+        tracing::info!("{}: {result}", adaptor.get_name());
     }
 
     Ok(())

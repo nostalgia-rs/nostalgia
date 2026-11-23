@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 fn get_lazyframe() -> PolarsResult<LazyFrame> {
-    println!("Running DB!");
+    tracing::debug!("Running DB!");
 
     let schema = Schema::from_iter(vec![
         Field::new("category".into(), DataType::String),
@@ -22,8 +22,8 @@ fn get_lazyframe() -> PolarsResult<LazyFrame> {
     ]);
     let schema_ref: SchemaRef = Arc::new(schema);
 
-    println!("CWD: {}", current_dir()?.display());
-    println!("HOME: {:?}", std::env::var_os("HOME"));
+    tracing::debug!("CWD: {}", current_dir()?.display());
+    tracing::debug!("HOME: {:?}", std::env::var_os("HOME"));
 
     let database_path = database_glob(std::env::var_os("HOME"))?;
 
