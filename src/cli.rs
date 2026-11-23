@@ -46,6 +46,12 @@ pub fn build_command() -> Command {
                 .required(false)
                 .num_args(0)
                 .help("Prints the current configuration.")
+        ).arg(
+            Arg::new("validate-database")
+                .long("validate-database")
+                .required(false)
+                .num_args(0)
+                .help("Loads and displays all rows from the database CSV files.")
         )
 }
 
@@ -55,10 +61,16 @@ mod tests {
 
     #[test]
     fn parses_both_supported_flags() {
-        let matches = get_cli_arguments(["nostalgia", "--get-config-location", "--print-config"]);
+        let matches = get_cli_arguments([
+            "nostalgia",
+            "--get-config-location",
+            "--print-config",
+            "--validate-database",
+        ]);
 
         assert!(matches.get_flag("get-config-location"));
         assert!(matches.get_flag("print-config"));
+        assert!(matches.get_flag("validate-database"));
     }
 
     #[test]
@@ -67,6 +79,7 @@ mod tests {
 
         assert!(!matches.get_flag("get-config-location"));
         assert!(!matches.get_flag("print-config"));
+        assert!(!matches.get_flag("validate-database"));
         assert_eq!(matches.get_count("verbose"), 0);
     }
 

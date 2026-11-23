@@ -12,6 +12,7 @@ fn main() {
 
     let cli_arguments = nostalgia::cli::get_cli_arguments(std::env::args_os());
     let max_level = match cli_arguments.get_count("verbose") {
+        0 if cli_arguments.get_flag("validate-database") => LevelFilter::INFO,
         0 => LevelFilter::ERROR,
         1 => LevelFilter::INFO,
         _ => LevelFilter::DEBUG,

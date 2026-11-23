@@ -168,6 +168,36 @@ fn verbosity_flags_select_error_info_and_debug_output() {
 }
 
 #[test]
+fn validates_and_displays_all_database_rows_without_verbosity_flags() {
+    let home = TestHome::new();
+    home.write_config("enabled_adaptors = []\n");
+    home.write_database();
+    fs::write(
+        home.0.join(".nostalgia/database/images.csv"),
+        "category,subcategory,index,name,dark_threshold,background_color,foreground_color,type,second_type\n\
+         pokemon,fire,1,charmander,0.5,112233,aabbcc,Fire,\n\
+         pokemon,water,3,squirtle,0.4,223344,bbccdd,Water,\n\
+         plants,forest,2,fern,0.3,223344,bbccdd,Grass,\n",
+    )
+    .unwrap();
+
+    let output = home.run(&["--validate-database"]);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("3 rows and 9 columns"));
+    assert!(stdout.contains("charmander"));
+    assert!(stdout.contains("fern"));
+    assert!(stdout.contains("Category counts:"));
+    assert!(stdout.contains("count"));
+    assert!(stdout.contains("squirtle"));
+}
+
+#[test]
 fn runs_ghostty_and_updates_its_user_configuration() {
     let home = TestHome::new();
     home.write_config("enabled_adaptors = [\"ghostty\"]\n");

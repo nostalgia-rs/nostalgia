@@ -44,6 +44,29 @@ fn database_glob(home: Option<std::ffi::OsString>) -> PolarsResult<String> {
         .map_err(|_| PolarsError::ComputeError("Database path is not valid UTF-8".into()))
 }
 
+/// Loads all rows from the user's database CSV files without applying filters.
+///
+/// # Errors
+///
+/// Returns an error if a CSV file cannot be read or collected.
+pub fn get_all_rows() -> PolarsResult<DataFrame> {
+    get_lazyframe()?.collect()
+}
+
+/// Counts database rows grouped by category.
+///
+/// # Errors
+///
+/// Returns an error if the category column is missing or the aggregation fails.
+pub fn get_category_counts(database: &DataFrame) -> PolarsResult<DataFrame> {
+    database
+        .clone()
+        .lazy()
+        .group_by([col("category")])
+        .agg([len().alias("count")])
+        .collect()
+}
+
 fn row_count(count_df: &DataFrame) -> PolarsResult<usize> {
     if count_df.height() == 0 {
         return Err(PolarsError::NoData(
@@ -117,7 +140,9 @@ pub fn get_random_row(
 
 #[cfg(test)]
 mod tests {
-    use super::{database_glob, filter_values, row_count, row_count_value, row_offset};
+    use super::{
+        database_glob, filter_values, get_category_counts, row_count, row_count_value, row_offset,
+    };
     use polars::df;
     use polars::prelude::{DataFrame, IntoLazy, PolarsResult};
 
@@ -150,6 +175,25 @@ mod tests {
         let filtered = filter_values(frame.lazy(), "category", &categories).collect()?;
 
         assert_eq!(filtered.height(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn groups_database_rows_and_counts_them_by_category() -> PolarsResult<()> {
+        let frame = df!("category" => ["pokemon", "pokemon", "plants"])?;
+
+        let counts = get_category_counts(&frame)?;
+
+        for (category, expected_count) in [("pokemon", 2), ("plants", 1)] {
+            let mut category_count = None;
+            for index in 0..counts.height() {
+                if counts.column("category")?.get(index)?.str_value().as_ref() == category {
+                    category_count = counts.column("count")?.u32()?.get(index);
+                    break;
+                }
+            }
+            assert_eq!(category_count, Some(expected_count));
+        }
         Ok(())
     }
 

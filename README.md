@@ -65,3 +65,16 @@ extension. The `ALL` value disables filtering for a config field; other filter
 values must match the CSV value exactly. Keep each CSV and its corresponding
 images under `~/.nostalgia/`, and use a unique `index` for each image within
 its category/subcategory.
+
+## Validating the database
+
+Run the following command to read all database CSV files without applying the
+configured filters and display the row count, schema, per-category row counts,
+and dataframe:
+
+```sh
+nostalgia --validate-database
+```
+
+The command reports CSV read or schema errors and exits unsuccessfully if the
+database cannot be loaded.

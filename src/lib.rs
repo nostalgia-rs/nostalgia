@@ -16,7 +16,7 @@ pub mod database;
 use crate::adaptors::Adaptor;
 use crate::adaptors::{AdaptorConfig, get_adaptor};
 use crate::config::{NostalgiaConfig, get_config};
-use crate::database::get_random_row;
+use crate::database::{get_all_rows, get_category_counts, get_random_row};
 
 fn config_location(home: Option<std::path::PathBuf>) -> Result<std::path::PathBuf> {
     home.map(|home| home.join(".nostalgia"))
@@ -54,6 +54,18 @@ pub fn run() -> Result<()> {
 ///
 /// Returns an error if configuration or database operations fail.
 pub fn run_with_cli_arguments(cli_arguments: clap::ArgMatches) -> Result<()> {
+    if cli_arguments.get_flag("validate-database") {
+        let database = get_all_rows()?;
+        let category_counts = get_category_counts(&database)?;
+        tracing::info!(
+            "Database validation succeeded: {} rows and {} columns\nSchema: {:?}\nCategory counts:\n{category_counts}\n{database}",
+            database.height(),
+            database.width(),
+            database.schema()
+        );
+        return Ok(());
+    }
+
     let config: NostalgiaConfig = get_config()?;
     tracing::info!("Categories: {}", config.categories.join(", "));
 
