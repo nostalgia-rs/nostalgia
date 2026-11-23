@@ -20,6 +20,12 @@ pub fn build_command() -> Command {
         .about("CLI to help bring some nostalgia to your day.")
         .help_expected(true)
         .max_term_width(80)
+        .after_help(
+            "Data: Put CSV files under ~/.nostalgia/ with columns \
+             category,subcategory,index,name,dark_threshold,background_color,foreground_color,type,second_type. \
+             Match each row with ~/.nostalgia/<category>/<subcategory>/<index>.jpg. \
+             See the README for details.",
+        )
         .arg(
             Arg::new("verbose")
                 .short('v')
