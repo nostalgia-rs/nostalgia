@@ -1,7 +1,7 @@
-use std::ffi::OsString;
-// use clap::{Arg, ArgAction, ArgMatches, Command, ValueHint, builder::NonEmptyStringValueParser};
 use clap::{Arg, ArgMatches, Command};
+use std::ffi::OsString;
 
+/// Parses the supplied process arguments using Nostalgia's command-line definition.
 pub fn get_cli_arguments<'a, I, T>(args: I) -> ArgMatches
 where
     I: IntoIterator<Item = T>,
@@ -12,6 +12,7 @@ where
 }
 
 #[must_use]
+/// Builds the Clap command used by the executable.
 pub fn build_command() -> Command {
     Command::new("nostalgia")
         .next_line_help(true)
@@ -34,4 +35,25 @@ pub fn build_command() -> Command {
                 .num_args(0)
                 .help("Prints the current configuration.")
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::get_cli_arguments;
+
+    #[test]
+    fn parses_both_supported_flags() {
+        let matches = get_cli_arguments(["nostalgia", "--get-config-location", "--print-config"]);
+
+        assert!(matches.get_flag("get-config-location"));
+        assert!(matches.get_flag("print-config"));
+    }
+
+    #[test]
+    fn leaves_flags_disabled_by_default() {
+        let matches = get_cli_arguments(["nostalgia"]);
+
+        assert!(!matches.get_flag("get-config-location"));
+        assert!(!matches.get_flag("print-config"));
+    }
 }

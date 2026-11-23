@@ -1,7 +1,15 @@
 test:
     cargo fmt
     cargo clippy
-    cargo test
+    cargo nextest run
+
+coverage:
+    cargo llvm-cov --all-targets --fail-under-lines 100
+
+doc:
+    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+    cargo clippy --all-targets -- -D missing_docs
+    cargo doc --no-deps --document-private-items --open
 
 run:
     cargo run

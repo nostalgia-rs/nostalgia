@@ -5,7 +5,6 @@
 
 use crate::adaptors::{Adaptor, AdaptorConfig};
 
-use std::fmt::Write as _;
 use std::io::{Error, ErrorKind};
 use std::process::Command;
 
@@ -46,7 +45,7 @@ impl Adaptor for AppleTerminal {
             })?;
             let (red, green, blue) = color_components(background_color)?;
             script.push_str("set background color of targetProfile to {");
-            let _ = write!(script, "{red}, {green}, {blue}");
+            script.push_str(&format!("{red}, {green}, {blue}"));
             script.push_str("}\n");
         }
 
@@ -56,7 +55,7 @@ impl Adaptor for AppleTerminal {
             })?;
             let (red, green, blue) = color_components(foreground_color)?;
             script.push_str("set normal text color of targetProfile to {");
-            let _ = write!(script, "{red}, {green}, {blue}");
+            script.push_str(&format!("{red}, {green}, {blue}"));
             script.push_str("}\n");
         }
 
@@ -83,7 +82,7 @@ impl Adaptor for AppleTerminal {
 
 fn color_components(color: &str) -> Result<(u16, u16, u16), Error> {
     let hex = color.strip_prefix('#').unwrap_or(color);
-    if hex.len() != 6 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if hex.len() != 6 {
         return Err(Error::new(
             ErrorKind::InvalidInput,
             "Apple Terminal colors must be six-digit hexadecimal RGB values",
@@ -93,7 +92,12 @@ fn color_components(color: &str) -> Result<(u16, u16, u16), Error> {
     let channel = |start| {
         u8::from_str_radix(&hex[start..start + 2], 16)
             .map(|value| u16::from(value) * 257)
-            .map_err(|error| Error::new(ErrorKind::InvalidInput, error))
+            .map_err(|_| {
+                Error::new(
+                    ErrorKind::InvalidInput,
+                    "Apple Terminal colors must be six-digit hexadecimal RGB values",
+                )
+            })
     };
 
     Ok((channel(0)?, channel(2)?, channel(4)?))
@@ -119,6 +123,18 @@ mod tests {
             color_components("blue").unwrap_err().kind(),
             std::io::ErrorKind::InvalidInput
         );
+        assert_eq!(
+            color_components("gg0000").unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+        assert_eq!(
+            color_components("00gg00").unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+        assert_eq!(
+            color_components("0000gg").unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
     }
 
     #[test]
@@ -137,6 +153,83 @@ mod tests {
         assert_eq!(
             adaptor.execute("", &config).unwrap_err().kind(),
             std::io::ErrorKind::InvalidInput
+        );
+    }
+
+    #[test]
+    fn reports_missing_enabled_profile_colors() {
+        let settings = NostalgiaConfig::default();
+        let config = AdaptorConfig {
+            settings: &settings,
+            background_color: None,
+            foreground_color: None,
+        };
+
+        assert_eq!(
+            AppleTerminal {}.execute("", &config).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+
+        let settings = NostalgiaConfig {
+            change_terminal_background_color: false,
+            ..settings
+        };
+        let config = AdaptorConfig {
+            settings: &settings,
+            background_color: None,
+            foreground_color: None,
+        };
+        assert_eq!(
+            AppleTerminal {}.execute("", &config).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_enabled_profile_colors() {
+        let settings = NostalgiaConfig::default();
+        let config = AdaptorConfig {
+            settings: &settings,
+            background_color: Some("gg0000"),
+            foreground_color: Some("aabbcc"),
+        };
+        assert_eq!(
+            AppleTerminal {}.execute("", &config).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+
+        let settings = NostalgiaConfig {
+            change_terminal_background_color: false,
+            change_terminal_foreground_color: true,
+            ..NostalgiaConfig::default()
+        };
+        let config = AdaptorConfig {
+            settings: &settings,
+            background_color: None,
+            foreground_color: Some("00gg00"),
+        };
+        assert_eq!(
+            AppleTerminal {}.execute("", &config).unwrap_err().kind(),
+            std::io::ErrorKind::InvalidInput
+        );
+    }
+
+    #[test]
+    fn returns_without_running_osascript_when_no_profile_colors_are_enabled() {
+        let settings = NostalgiaConfig {
+            change_terminal_background_color: false,
+            change_terminal_foreground_color: false,
+            ..NostalgiaConfig::default()
+        };
+        let config = AdaptorConfig {
+            settings: &settings,
+            background_color: None,
+            foreground_color: None,
+        };
+
+        assert_eq!(
+            AppleTerminal {}.execute("", &config).unwrap(),
+            "No Apple Terminal profile colors were enabled"
         );
     }
 }

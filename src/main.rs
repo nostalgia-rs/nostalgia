@@ -1,3 +1,5 @@
+//! Command-line entry point for the Nostalgia application.
+
 // use inline_colorization::*
 use std::process::exit;
 

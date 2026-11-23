@@ -25,23 +25,50 @@ fn get_lazyframe() -> PolarsResult<LazyFrame> {
     println!("CWD: {}", current_dir()?.display());
     println!("HOME: {:?}", std::env::var_os("HOME"));
 
-    let database_path = std::env::var_os("HOME").map_or_else(
-        || {
-            Err(PolarsError::ComputeError(
-                "HOME environment variable is not set".into(),
-            ))
-        },
-        |home| Ok(PathBuf::from(home).join(".nostalgia/**/*.csv")),
-    )?;
-    let database_path = database_path
-        .to_str()
-        .ok_or_else(|| PolarsError::ComputeError("Database path is not valid UTF-8".into()))?;
+    let database_path = database_glob(std::env::var_os("HOME"))?;
 
-    LazyCsvReader::new(database_path.into())
+    LazyCsvReader::new(database_path.as_str().into())
         .with_glob(true)
         .with_has_header(true)
         .with_schema(Some(schema_ref))
         .finish() //?.collect()
+}
+
+fn database_glob(home: Option<std::ffi::OsString>) -> PolarsResult<String> {
+    let home = home
+        .ok_or_else(|| PolarsError::ComputeError("HOME environment variable is not set".into()))?;
+    PathBuf::from(home)
+        .join(".nostalgia/**/*.csv")
+        .into_os_string()
+        .into_string()
+        .map_err(|_| PolarsError::ComputeError("Database path is not valid UTF-8".into()))
+}
+
+fn row_count(count_df: &DataFrame) -> PolarsResult<usize> {
+    if count_df.height() == 0 {
+        return Err(PolarsError::NoData(
+            "row count query returned no rows".into(),
+        ));
+    }
+
+    let count = count_df
+        .column("total_rows")?
+        .u32()?
+        .get(0)
+        .ok_or_else(|| PolarsError::NoData("row count query returned no rows".into()))?;
+    row_count_value(count)
+}
+
+fn row_count_value<T: TryInto<usize>>(count: T) -> PolarsResult<usize> {
+    count
+        .try_into()
+        .map_err(|_| PolarsError::ComputeError("row count is too large".into()))
+}
+
+fn row_offset<T: TryInto<i64>>(count: T) -> PolarsResult<i64> {
+    count
+        .try_into()
+        .map_err(|_| PolarsError::ComputeError("row count exceeds supported offset".into()))
 }
 
 fn filter_values(lf: LazyFrame, column: &str, values: &[String]) -> LazyFrame {
@@ -78,30 +105,21 @@ pub fn get_random_row(
         .clone()
         .select([len().alias("total_rows")])
         .collect()?;
-    let total_rows = count_df
-        .column("total_rows")?
-        .u32()?
-        .get(0)
-        .ok_or_else(|| PolarsError::NoData("row count query returned no rows".into()))
-        .and_then(|count| {
-            usize::try_from(count)
-                .map_err(|_| PolarsError::ComputeError("row count is too large".into()))
-        })?;
+    let total_rows = row_count(&count_df)?;
 
     if total_rows == 0 {
         return Ok(DataFrame::empty());
     }
 
-    let offset = i64::try_from(rng().random_range(0..total_rows))
-        .map_err(|_| PolarsError::ComputeError("row count exceeds supported offset".into()))?;
+    let offset = row_offset(rng().random_range(0..total_rows))?;
     type_filtered_lf.slice(offset, 1).collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::filter_values;
+    use super::{database_glob, filter_values, row_count, row_count_value, row_offset};
     use polars::df;
-    use polars::prelude::{IntoLazy, PolarsResult};
+    use polars::prelude::{DataFrame, IntoLazy, PolarsResult};
 
     #[test]
     fn filters_rows_to_all_configured_values() -> PolarsResult<()> {
@@ -111,7 +129,8 @@ mod tests {
             "name" => ["charmander", "charmander", "charmander", "squirtle", "charmander"],
             "type" => ["Fire", "Fire", "Water", "Water", "Water"],
             "index" => ["1", "2", "3", "4", "5"],
-        )?;
+        )
+        .unwrap();
 
         let filtered = filter_values(frame.lazy(), "category", &["pokemon".to_owned()]);
         let filtered = filter_values(filtered, "subcategory", &["fire".to_owned()]);
@@ -131,6 +150,47 @@ mod tests {
         let filtered = filter_values(frame.lazy(), "category", &categories).collect()?;
 
         assert_eq!(filtered.height(), 2);
+        Ok(())
+    }
+
+    #[test]
+    fn empty_filter_matches_no_rows() -> PolarsResult<()> {
+        let frame = df!("category" => ["pokemon", "plants"])?;
+
+        let filtered = filter_values(frame.lazy(), "category", &[]).collect()?;
+
+        assert_eq!(filtered.height(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn resolves_the_database_glob_or_reports_invalid_home_paths() {
+        let home = std::env::temp_dir().into_os_string();
+        assert!(
+            database_glob(Some(home))
+                .unwrap()
+                .ends_with(".nostalgia/**/*.csv")
+        );
+        assert!(database_glob(None).is_err());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+
+            assert!(database_glob(Some(std::ffi::OsString::from_vec(vec![0xff]))).is_err());
+        }
+    }
+
+    #[test]
+    fn reports_row_count_schema_and_empty_result_errors() -> PolarsResult<()> {
+        assert!(row_count(&DataFrame::empty()).is_err());
+        assert!(row_count(&df!("other_column" => [1])?).is_err());
+        assert!(row_count(&df!("total_rows" => ["not a count"])?).is_err());
+        assert!(row_count(&df!("total_rows" => Vec::<u32>::new())?).is_err());
+        assert!(row_count(&df!("total_rows" => [None::<u32>])?).is_err());
+        assert!(row_count_value(u128::MAX).is_err());
+        assert!(row_offset(u128::MAX).is_err());
+        assert!(df!("left" => [1, 2], "right" => [1]).is_err());
         Ok(())
     }
 }

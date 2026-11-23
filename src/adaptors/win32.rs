@@ -2,6 +2,7 @@ use crate::adaptors::{Adaptor, AdaptorConfig};
 
 use std::io::Error;
 
+/// Placeholder adaptor for the Windows wallpaper integration.
 pub struct Win32 {}
 
 impl Adaptor for Win32 {
