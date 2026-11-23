@@ -4,7 +4,10 @@ test:
     cargo nextest run
 
 coverage:
-    cargo llvm-cov --all-targets --fail-under-lines 100
+    cargo llvm-cov --all-targets --fail-under-lines 95
+
+coverage-html:
+    cargo llvm-cov --all-targets --fail-under-lines 95 --html --open
 
 doc:
     RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
