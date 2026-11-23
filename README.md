@@ -1,80 +1,171 @@
-# nostalgia
+# Nostalgia
 
-Bring a bit of nostalgia to your day
+Bring a bit of nostalgia to your day.
 
-> [!NOTE]
-> This is a partial fork of [Pokemon-Terminal](https://github.com/LazoVelko/Pokemon-Terminal) to rewrite in rust and expand support for non-pokemon themes.
+## 1. Introduction
 
-DONE: Darwin wallpaper
-DONE: Ghostty background image and color (updates the Ghostty config file)
-DONE: Warp JPEG background themes and colors (select the generated theme once in Warp)
-DONE: Apple Terminal active profile colors
-NOTE: Apple Terminal does not expose background images or opacity through its scripting dictionary.
+Nostalgia is a command-line app for people who keep a personal collection of
+wallpapers or terminal backgrounds. It reads a CSV library from your home
+directory, applies optional category, subcategory, name, and type filters,
+selects a matching image at random, and hands it to a configured desktop or
+terminal adaptor. The project began as a Rust rewrite and extension of
+[Pokemon-Terminal](https://github.com/LazoVelko/Pokemon-Terminal), with the
+goal of supporting image collections beyond Pokémon. Nostalgia is open source
+under GPL-3.0-or-later, so users can inspect, modify, and contribute to the
+tool. It is intended for hobbyists who want a simple local collection and
+adaptors rather than a separate image-management service.
 
-Configure adaptors in `~/.nostalgia/config.toml` with `enabled_adaptors`, for example:
+## 2. Project description
 
-```toml
-enabled_adaptors = ["wallpaper", "warp", "ghostty", "apple"]
+### What it does
+
+Keep image files and CSV metadata under `~/.nostalgia/`. Each database row
+describes one image and can include category labels and foreground/background
+colors. Nostalgia loads the CSV data, chooses a random row that matches the
+filters in `config.toml`, builds the image path from the row, and runs each
+enabled adaptor.
+
+### Features and components
+
+- **CSV database:** Loads CSV files recursively from `~/.nostalgia/` and
+  supports filters for category, subcategory, name, and type.
+- **Database validation:** `--validate-database` loads all rows and displays
+  the dataframe schema, row count, per-category row counts, and
+  the dataframe contents.
+- **Adaptors:** Applies the selected image or its colors to supported
+  desktop/terminal applications:
+
+  | Adaptor | Behavior |
+  | --- | --- |
+  | `wallpaper` | Uses the platform wallpaper adaptor: macOS is supported; the Windows adaptor is currently a stub. |
+  | `ghostty` | Updates Ghostty's image, opacity, and optional color settings. |
+  | `warp` | Creates a JPEG-based Warp theme; select the generated theme in Warp's theme picker. |
+  | `apple` | Changes Apple Terminal profile colors on macOS; Apple Terminal does not expose background images or opacity through its scripting dictionary. |
+  | `darwin` | Sets the macOS desktop wallpaper. |
+
+### Technical overview
+
+Nostalgia is written in Rust (edition 2024). Clap defines the CLI, Confy and
+Serde load configuration, Polars reads and queries CSV data, and tracing
+provides structured application logging. The application is organized around
+a database loader, user configuration, and an adaptor interface so the random
+selection flow is separate from application-specific behavior.
+
+## 3. Getting started
+
+### Requirements and installation
+
+Install a Rust toolchain with Cargo. Clone and build the repository:
+
+```sh
+git clone https://github.com/nostalgia-rs/nostalgia.git
+cd nostalgia
+cargo install --path .
 ```
 
-By default, only `wallpaper` is enabled; it resolves to the native Windows or macOS wallpaper adaptor. Terminal adaptors can be enabled by name: `warp`, `ghostty`, and `apple` (Apple Terminal, macOS only for now).
+Cargo downloads the Rust dependencies declared in `Cargo.toml`. Check the
+available options with `nostalgia --help`.
 
-## Adding images and database rows
+### Configure an adaptor
 
-Nostalgia reads every CSV file below `~/.nostalgia/` and selects a row matching
-the configured `categories`, `subcategories`, `names`, and `types`. Put your
-CSV wherever convenient inside that directory, for example
-`~/.nostalgia/database/images.csv`. It must have a header with these columns in
-this order (all columns are required):
+Configuration is read from `~/.nostalgia/config.toml`. By default, only
+`wallpaper` is enabled. For example:
+
+```toml
+enabled_adaptors = ["wallpaper", "ghostty"]
+categories = ["ALL"]
+subcategories = ["ALL"]
+names = ["ALL"]
+types = ["ALL"]
+```
+
+Use adaptor names such as `warp`, `ghostty`, and `apple` in
+`enabled_adaptors`. On macOS, `wallpaper` selects the macOS desktop adaptor;
+the Windows wallpaper adaptor is currently a stub.
+
+### Add a database CSV and image
+
+Nostalgia reads every CSV file below `~/.nostalgia/`. Save a CSV such as
+`~/.nostalgia/database/images.csv` with this header and a row:
 
 ```csv
 category,subcategory,index,name,dark_threshold,background_color,foreground_color,type,second_type
 pokemon,fire,1,charmander,0.5,112233,aabbcc,Fire,
 ```
 
-The columns mean:
+All columns are required in this order:
 
-- `category` and `subcategory`: image directory names and values matched by
-  their corresponding config filters.
-- `index`: image filename stem and a unique ID within the category and
-  subcategory.
-- `name` and `type`: values matched by the `names` and `types` config filters.
-- `background_color` and `foreground_color`: six-digit RGB hex colors, with or
-  without a leading `#`, used by adaptors that change terminal colors.
-- `dark_threshold` and `second_type`: required for the CSV schema but currently
-  unused by the app.
+- `category` and `subcategory` provide directory names and values for their
+  corresponding filters.
+- `index` is the image filename stem and should be unique within its
+  category/subcategory.
+- `name` and `type` are values for the `names` and `types` filters.
+- `background_color` and `foreground_color` are six-digit RGB hex colors,
+  optionally prefixed with `#`; adaptors that support terminal colors use them.
+- `dark_threshold` and `second_type` are required by the CSV schema but are
+  currently unused.
 
-For each row, put its JPEG image in a matching category/subcategory folder.
-The image filename is the row's `index` plus `.jpg`; the category,
-subcategory, and index values must match the directory and filename exactly.
-For example:
+Put the image at
+`~/.nostalgia/<category>/<subcategory>/<index>.jpg`. For the example row,
+create these directories and save the image here:
 
 ```sh
 mkdir -p ~/.nostalgia/database ~/.nostalgia/pokemon/fire
 ```
 
-Save the CSV example above as `~/.nostalgia/database/images.csv` and the
-matching JPEG image at:
-
 ```text
 ~/.nostalgia/pokemon/fire/1.jpg
 ```
 
-Use JPEG files for all adaptors; Warp requires JPEG, and `.jpg` is the expected
-extension. The `ALL` value disables filtering for a config field; other filter
-values must match the CSV value exactly. Keep each CSV and its corresponding
-images under `~/.nostalgia/`, and use a unique `index` for each image within
-its category/subcategory.
+Use JPEG files with the `.jpg` extension for all adaptors; Warp requires JPEG.
+Filter values other than `ALL` must match the corresponding CSV values exactly.
+`ALL` disables filtering for that field.
 
-## Validating the database
-
-Run the following command to read all database CSV files without applying the
-configured filters and display the row count, schema, per-category row counts,
-and dataframe:
+### Useful commands
 
 ```sh
 nostalgia --validate-database
+nostalgia --get-config-location
+nostalgia --print-config
+nostalgia -v       # Info-level logs
+nostalgia -vv      # Debug-level logs
 ```
 
-The command reports CSV read or schema errors and exits unsuccessfully if the
-database cannot be loaded.
+`--validate-database` reads the full database without applying config filters
+and exits with an error if the CSV data cannot be loaded.
+
+## 4. Contributing
+
+Bug reports, documentation improvements, and focused code changes are
+welcome. Before opening a pull request:
+
+1. Make a focused change and add or update tests for behavior it affects.
+2. Format and check the project, then run its tests:
+
+   ```sh
+   cargo fmt
+   cargo clippy
+   cargo test
+   ```
+
+3. Describe the change and include relevant test results in your pull request.
+
+Please use clear Rust code that follows `rustfmt` and the repository's Clippy
+lint settings. Open an issue for larger proposals so the scope can be discussed
+before implementation. Contributions are subject to the project's
+[GPL-3.0-or-later license](LICENSE).
+
+## 5. Project status
+
+Nostalgia is under active development. macOS wallpaper, Ghostty configuration,
+Warp themes, and Apple Terminal profile colors are implemented. The Windows
+wallpaper adaptor remains a stub, and Apple Terminal does not support image
+backgrounds or opacity through the interface used by Nostalgia. See the issue
+tracker for current bugs and proposed work.
+
+## 6. Resources
+
+- **Repository:** [nostalgia-rs/nostalgia](https://github.com/nostalgia-rs/nostalgia)
+- **Issues and feature requests:** [GitHub Issues](https://github.com/nostalgia-rs/nostalgia/issues)
+- **License:** [GPL-3.0-or-later](LICENSE)
+- **CLI reference:** Run `nostalgia --help` for the options available in your build.
