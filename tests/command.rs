@@ -114,6 +114,20 @@ fn prints_the_configuration_location() {
 }
 
 #[test]
+fn prints_the_package_version() {
+    let output = Command::new(env!("CARGO_BIN_EXE_nostalgia"))
+        .arg("--version")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        format!("nostalgia {}", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
 fn prints_the_loaded_configuration() {
     let home = TestHome::new();
     home.write_config("enabled_adaptors = []\ncategories = [\"plants\"]\n");

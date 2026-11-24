@@ -21,6 +21,7 @@ where
 /// options.
 pub fn build_command() -> Command {
     Command::new("nostalgia")
+        .version(env!("CARGO_PKG_VERSION"))
         .next_line_help(true)
         .hide_possible_values(true)
         .about("CLI to help bring some nostalgia to your day.")
