@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../homebrew-tap"
+		},
+		{
+			"path": "../nostalgia-assets"
+		}
+	],
+	"settings": {}
+}

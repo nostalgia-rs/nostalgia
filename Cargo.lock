@@ -1671,7 +1671,7 @@ dependencies = [
 
 [[package]]
 name = "nostalgia"
-version = "0.1.0"
+version = "26.11.24"
 dependencies = [
  "anyhow",
  "cargo-llvm-cov",

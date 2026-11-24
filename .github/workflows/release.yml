@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Test and publish source archive
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          version = tomllib.loads(Path("Cargo.toml").read_text())["package"]["version"]
+          if tag != f"v{version}":
+              raise SystemExit(f"Tag {tag!r} does not match Cargo.toml version v{version}")
+          PY
+
+      - name: Run tests
+        run: cargo test --locked
+
+      - name: Vendor dependencies
+        run: |
+          mkdir -p .cargo
+          cargo vendor --locked vendor > .cargo/config.toml
+
+      - name: Package source archive
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist/source/.cargo
+          cp Cargo.toml Cargo.lock README.md LICENSE dist/source/
+          cp -R src vendor dist/source/
+          cp .cargo/config.toml dist/source/.cargo/config.toml
+          tar -C dist/source -czf "dist/nostalgia-${RELEASE_TAG}.tar.gz" .
+          sha256sum "dist/nostalgia-${RELEASE_TAG}.tar.gz" > "dist/nostalgia-${RELEASE_TAG}.tar.gz.sha256"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "dist/nostalgia-${RELEASE_TAG}.tar.gz" \
+            "dist/nostalgia-${RELEASE_TAG}.tar.gz.sha256" \
+            --generate-notes

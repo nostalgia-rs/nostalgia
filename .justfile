@@ -1,3 +1,11 @@
+setup-workspace:
+    just download-other-repos
+
+[working-directory: ../]
+download-other-repos:
+    gh repo clone nostalgia-rs/homebrew-tap
+    gh repo clone nostalgia-rs/nostalgia-assets
+
 test:
     cargo fmt
     cargo clippy
