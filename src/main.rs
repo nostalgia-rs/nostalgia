@@ -3,6 +3,7 @@
 // use inline_colorization::*
 use std::process::exit;
 
+/// Initializes tracing from the CLI verbosity and executes the requested command.
 fn main() {
     use tracing_subscriber::Layer;
     use tracing_subscriber::filter::LevelFilter;
@@ -12,7 +13,11 @@ fn main() {
 
     let cli_arguments = nostalgia::cli::get_cli_arguments(std::env::args_os());
     let max_level = match cli_arguments.get_count("verbose") {
-        0 if cli_arguments.get_flag("validate-database") => LevelFilter::INFO,
+        0 if cli_arguments.get_flag("validate-database")
+            || cli_arguments.get_flag("download-assets") =>
+        {
+            LevelFilter::INFO
+        }
         0 => LevelFilter::ERROR,
         1 => LevelFilter::INFO,
         _ => LevelFilter::DEBUG,
@@ -40,7 +45,7 @@ fn main() {
         .with(max_level)
         .init();
 
-    if let Err(error) = nostalgia::run_with_cli_arguments(cli_arguments) {
+    if let Err(error) = nostalgia::run_with_cli_arguments(&cli_arguments) {
         tracing::error!("Error: {error:#}");
         exit(1)
     }

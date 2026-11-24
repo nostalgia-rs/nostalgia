@@ -2,6 +2,9 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
 
 /// Parses the supplied process arguments using Nostalgia's command-line definition.
+///
+/// The first item in `args` should be the executable name, following Clap's
+/// standard argument convention.
 pub fn get_cli_arguments<'a, I, T>(args: I) -> ArgMatches
 where
     I: IntoIterator<Item = T>,
@@ -12,7 +15,10 @@ where
 }
 
 #[must_use]
-/// Builds the Clap command used by the executable.
+/// Builds the Clap command and help text used by the executable.
+///
+/// Defines verbosity, configuration, database validation, and asset download
+/// options.
 pub fn build_command() -> Command {
     Command::new("nostalgia")
         .next_line_help(true)
@@ -52,6 +58,12 @@ pub fn build_command() -> Command {
                 .required(false)
                 .num_args(0)
                 .help("Loads and displays all rows from the database CSV files.")
+        ).arg(
+            Arg::new("download-assets")
+                .long("download-assets")
+                .required(false)
+                .num_args(0)
+                .help("Downloads and extracts the latest image assets.")
         )
 }
 
@@ -66,11 +78,13 @@ mod tests {
             "--get-config-location",
             "--print-config",
             "--validate-database",
+            "--download-assets",
         ]);
 
         assert!(matches.get_flag("get-config-location"));
         assert!(matches.get_flag("print-config"));
         assert!(matches.get_flag("validate-database"));
+        assert!(matches.get_flag("download-assets"));
     }
 
     #[test]
@@ -80,6 +94,7 @@ mod tests {
         assert!(!matches.get_flag("get-config-location"));
         assert!(!matches.get_flag("print-config"));
         assert!(!matches.get_flag("validate-database"));
+        assert!(!matches.get_flag("download-assets"));
         assert_eq!(matches.get_count("verbose"), 0);
     }
 

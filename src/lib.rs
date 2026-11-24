@@ -1,5 +1,7 @@
-//! Nostalgia selects a random entry from the user's image database and applies
-//! it through the configured wallpaper or terminal adaptors.
+//! Nostalgia manages local image assets and applies randomly selected entries
+//! from the user's database through configured wallpaper or terminal adaptors.
+//! It also provides commands to download the assets archive and validate the
+//! database.
 #![deny(missing_docs)]
 
 use anyhow::Result;
@@ -7,6 +9,7 @@ use std::env;
 
 /// Adaptors that apply an image to a wallpaper or terminal.
 pub mod adaptors;
+mod assets;
 /// Command-line argument parsing.
 pub mod cli;
 /// User configuration loading and defaults.
@@ -18,11 +21,22 @@ use crate::adaptors::{AdaptorConfig, get_adaptor};
 use crate::config::{NostalgiaConfig, get_config};
 use crate::database::{get_all_rows, get_category_counts, get_random_row};
 
+/// Resolves the Nostalgia data directory below the given home directory.
+///
+/// # Errors
+///
+/// Returns an error if the home directory is unavailable.
 fn config_location(home: Option<std::path::PathBuf>) -> Result<std::path::PathBuf> {
     home.map(|home| home.join(".nostalgia"))
         .ok_or_else(|| anyhow::anyhow!("HOME environment variable is not set"))
 }
 
+/// Builds the `.jpg` path for an image row under the given home directory.
+///
+/// # Errors
+///
+/// Returns an error if the home directory is unavailable or the path is not
+/// valid UTF-8.
 fn build_image_location(
     home: Option<std::path::PathBuf>,
     category: &str,
@@ -39,21 +53,32 @@ fn build_image_location(
         .map_err(|_| anyhow::anyhow!("Image path is not valid UTF-8"))
 }
 
-/// Runs the Nostalgia command using the process arguments and user files.
+/// Parses the process arguments and runs the selected Nostalgia command.
 ///
 /// # Errors
 ///
-/// Returns an error if configuration or database operations fail.
+/// Returns an error if configuration, database, asset download, or adaptor
+/// operations fail.
 pub fn run() -> Result<()> {
-    run_with_cli_arguments(cli::get_cli_arguments(env::args_os()))
+    let cli_arguments = cli::get_cli_arguments(env::args_os());
+    run_with_cli_arguments(&cli_arguments)
 }
 
-/// Runs Nostalgia using already-parsed command-line arguments.
+/// Runs Nostalgia using arguments parsed by [`cli::build_command`].
+///
+/// Asset downloading and database validation run without loading the user
+/// configuration; other commands load it before continuing.
 ///
 /// # Errors
 ///
-/// Returns an error if configuration or database operations fail.
-pub fn run_with_cli_arguments(cli_arguments: clap::ArgMatches) -> Result<()> {
+/// Returns an error if configuration, database, asset download, or adaptor
+/// operations fail.
+pub fn run_with_cli_arguments(cli_arguments: &clap::ArgMatches) -> Result<()> {
+    if cli_arguments.get_flag("download-assets") {
+        assets::download_assets(dirs::home_dir())?;
+        return Ok(());
+    }
+
     if cli_arguments.get_flag("validate-database") {
         let database = get_all_rows()?;
         let category_counts = get_category_counts(&database)?;

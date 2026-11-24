@@ -124,8 +124,9 @@ Filter values other than `ALL` must match the corresponding CSV values exactly.
 ### Useful commands
 
 ```sh
-nostalgia --validate-database
 nostalgia --get-config-location
+nostalgia --download-assets
+nostalgia --validate-database
 nostalgia --print-config
 nostalgia -v       # Info-level logs
 nostalgia -vv      # Debug-level logs
@@ -133,6 +134,16 @@ nostalgia -vv      # Debug-level logs
 
 `--validate-database` reads the full database without applying config filters
 and exits with an error if the CSV data cannot be loaded.
+
+`--download-assets` downloads the ZIP attached to the latest
+[nostalgia-assets release](https://github.com/nostalgia-rs/nostalgia-assets/releases),
+verifies its SHA-256 digest, and extracts it into `~/.nostalgia/`. The archive
+is kept there. Each run checks GitHub for the latest release, even if a local
+archive exists, so the command requires an internet connection. If the cached
+archive's checksum matches the latest release, it is reused without downloading
+it again; otherwise the latest ZIP is downloaded and verified before
+extraction. Extraction overwrites files at paths present in the archive but
+does not remove unrelated files or older versioned ZIPs.
 
 ## 4. Contributing
 
