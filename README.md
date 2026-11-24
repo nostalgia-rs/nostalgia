@@ -66,6 +66,19 @@ cargo install --path .
 Cargo downloads the Rust dependencies declared in `Cargo.toml`. Check the
 available options with `nostalgia --help`.
 
+On macOS, you can install Nostalgia with Homebrew:
+
+```sh
+brew tap nostalgia-rs/tap
+brew install nostalgia
+```
+
+Or install directly without adding the tap first:
+
+```sh
+brew install nostalgia-rs/tap/nostalgia
+```
+
 ### Configure an adaptor
 
 Configuration is read from `~/.nostalgia/config.toml`. By default, only
