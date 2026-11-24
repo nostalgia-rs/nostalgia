@@ -1,7 +1,7 @@
 [package]
 name = "nostalgia"
 description = "Bring a bit of nostalgia to your day"
-version = "26.11.24"
+version = "26.11.241"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/nostalgia-rs/nostalgia"
@@ -43,3 +43,8 @@ lto = true             # Enables Link-Time Optimization across crates
 codegen-units = 1      # Allows better optimization by reducing parallel codegen
 panic = "abort"        # Removes stack-unwinding overhead on panic
 strip = true           # Automatically strips symbols from the binary
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
