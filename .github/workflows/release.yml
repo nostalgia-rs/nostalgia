@@ -16,6 +16,9 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Verify tag matches package version
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -32,7 +35,10 @@ jobs:
           PY
 
       - name: Run tests
-        run: cargo test --locked
+        run: cargo nextest run --locked
+
+      - name: Run doc tests
+        run: cargo test --locked --doc
 
       - name: Vendor dependencies
         run: |

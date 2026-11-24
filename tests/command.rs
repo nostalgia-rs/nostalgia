@@ -292,7 +292,10 @@ fn runs_warp_and_writes_a_custom_theme_and_image() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+    #[cfg(target_os = "macos")]
     let themes = home.0.join(".warp/themes");
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let themes = home.0.join(".local/share/warp-terminal/themes");
     assert_eq!(
         fs::read(themes.join("nostalgia.jpg")).unwrap(),
         b"test jpeg data"
@@ -337,16 +340,20 @@ fn reports_missing_osascript_for_system_adaptors() {
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("No such file"));
 
-    let terminal_home = TestHome::new();
-    terminal_home.write_config("enabled_adaptors = [\"apple\"]\n");
-    terminal_home.write_database();
-    let empty_path = terminal_home.write_empty_path();
-    let output = terminal_home.run_with_path(&[], Some(&empty_path));
+    #[cfg(target_os = "macos")]
+    {
+        let terminal_home = TestHome::new();
+        terminal_home.write_config("enabled_adaptors = [\"apple\"]\n");
+        terminal_home.write_database();
+        let empty_path = terminal_home.write_empty_path();
+        let output = terminal_home.run_with_path(&[], Some(&empty_path));
 
-    assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("No such file"));
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("No such file"));
+    }
 }
 
+#[cfg(target_os = "macos")]
 #[test]
 fn runs_apple_terminal_profile_color_adaptor() {
     let home = TestHome::new();
