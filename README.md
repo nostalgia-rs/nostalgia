@@ -70,6 +70,7 @@ On macOS, you can install Nostalgia with Homebrew:
 
 ```sh
 brew tap nostalgia-rs/tap
+brew trust --formula nostalgia-rs/tap/nostalgia
 brew install nostalgia
 ```
 
